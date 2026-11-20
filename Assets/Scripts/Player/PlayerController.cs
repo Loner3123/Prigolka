@@ -1,53 +1,144 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
-    [Header("Настройки движения")]
-    // Скорость движения персонажа влево и вправо
-    public float speed = 5f;
+    [Header("Настройки прыжка")]
+    // Сила прыжка
+    public float jumpForce = 12f;
 
-    // Сила прыжка вверх
-    public float jumpForce = 10f;
-
-    // Компонент физики 2D
+    // Компонент 2D физики
     private Rigidbody2D rb;
 
-    // Стоит ли персонаж на земле (чтобы не прыгать бесконечно в воздухе)
+    // Стоит ли игрок на земле (чтобы не прыгать бесконечно в воздухе)
     private bool isGrounded = false;
 
-    void Start()
+    [Header("Анимация бега (Dark Fantasy)")]
+    // Спрайты для анимации бега и прыжка
+    public Sprite runSprite1;
+    public Sprite runSprite2;
+    public Sprite jumpSprite;
+
+    private SpriteRenderer spriteRenderer;
+    private float animationTimer;
+    public float animationSpeed = 0.12f; // Скорость переключения кадров
+    private bool isFirstFrame = true;
+
+    void Awake()
     {
-        // Получаем компонент Rigidbody2D с этого же объекта
+        // Назначаем стандартный тег игрока
+        gameObject.tag = "Player";
+
+        // Находим или автоматически добавляем физику Rigidbody2D
         rb = GetComponent<Rigidbody2D>();
+        if (rb == null)
+        {
+            rb = gameObject.AddComponent<Rigidbody2D>();
+        }
+
+        // Замораживаем вращение, чтобы рыцарь не падал на спину при приземлении
+        rb.freezeRotation = true;
+        rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+        // Находим или автоматически добавляем коллайдер
+        if (GetComponent<Collider2D>() == null)
+        {
+            gameObject.AddComponent<BoxCollider2D>();
+        }
+
+        spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
     void Update()
     {
-        // --- 1. ПЕРЕМЕЩЕНИЕ В СТОРОНУ ---
-        // Input.GetAxis("Horizontal") считывает кнопки A/D или стрелки влево/вправо:
-        // A / Стрелка влево = -1
-        // D / Стрелка вправо = +1
-        // Ничего не нажато = 0
-        float moveX = Input.GetAxis("Horizontal");
+        // --- 1. КНОПКА ПРЫЖКА ---
+        // Прыгает по кнопке Пробел, стрелке вверх, W или клику мышки / тапу
+        bool jumpPressed = Input.GetKeyDown(KeyCode.Space) 
+                        || Input.GetKeyDown(KeyCode.UpArrow) 
+                        || Input.GetKeyDown(KeyCode.W) 
+                        || Input.GetMouseButtonDown(0);
 
-        // Применяем скорость по оси X (влево/вправо), а скорость по Y (падение/прыжок) оставляем как есть
-        rb.velocity = new Vector2(moveX * speed, rb.velocity.y);
-
-
-        // --- 2. ПРЫЖОК ---
-        // Если нажали Пробел И персонаж сейчас на земле
-        if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
+        if (jumpPressed && isGrounded)
         {
-            // Толкаем персонажа вверх с силой jumpForce
             rb.velocity = new Vector2(rb.velocity.x, jumpForce);
-            isGrounded = false; // Оторвался от земли
+            isGrounded = false;
+        }
+
+        // --- 2. АНИМАЦИЯ БЕГА (САМ БЕЖИТ) ---
+        UpdateAnimation();
+    }
+
+    void UpdateAnimation()
+    {
+        if (spriteRenderer == null) return;
+
+        if (!isGrounded)
+        {
+            // В воздухе показываем спрайт прыжка
+            if (jumpSprite != null) spriteRenderer.sprite = jumpSprite;
+        }
+        else
+        {
+            // На земле циклично переключаем два кадра бега
+            animationTimer += Time.deltaTime;
+            if (animationTimer >= animationSpeed)
+            {
+                animationTimer = 0f;
+                isFirstFrame = !isFirstFrame;
+
+                if (isFirstFrame && runSprite1 != null)
+                {
+                    spriteRenderer.sprite = runSprite1;
+                }
+                else if (!isFirstFrame && runSprite2 != null)
+                {
+                    spriteRenderer.sprite = runSprite2;
+                }
+            }
         }
     }
 
-    // Срабатывает в момент касания с любым коллайдером (землей)
+    // --- 3. СТОЛКНОВЕНИЕ С ПРЕПЯТСТВИЕМ -> РЕСЕТ ИГРЫ ---
     void OnCollisionEnter2D(Collision2D collision)
     {
-        // Персонаж коснулся поверхности — значит, снова можно прыгать
+        // Проверяем, врезался ли игрок в препятствие
+        if (IsObstacle(collision.gameObject))
+        {
+            ResetGame();
+            return;
+        }
+
+        // Если коснулись земли (любой другой твердой поверхности под ногами)
         isGrounded = true;
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (IsObstacle(other.gameObject))
+        {
+            ResetGame();
+        }
+    }
+
+    // Проверка, является ли объект препятствием
+    private bool IsObstacle(GameObject obj)
+    {
+        if (obj == null) return false;
+
+        string name = obj.name.ToLower();
+        return obj.GetComponent<Obstacle>() != null 
+            || obj.CompareTag("Obstacle") 
+            || name.Contains("obstacle")
+            || name.Contains("spike")
+            || name.Contains("cactus")
+            || name.Contains("tombstone")
+            || name.Contains("gargoyle")
+            || name.Contains("bat");
+    }
+
+    // ПЕРЕЗАПУСК ИГРЫ
+    public void ResetGame()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 }
