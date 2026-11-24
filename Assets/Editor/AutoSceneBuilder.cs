@@ -75,11 +75,11 @@ public class AutoSceneBuilder
             gScroller.rightRespawnX = 13.5f;
         }
 
-        // 6. Игрок (Тёмный рыцарь)
+        // 6. Игрок (Тёмный рыцарь / Hunter в стиле Black Souls)
         GameObject playerObj = new GameObject("Player");
         playerObj.tag = "Player";
-        playerObj.transform.position = new Vector3(-5.5f, -2.6f, 0);
-        playerObj.transform.localScale = new Vector3(2.2f, 2.2f, 1f);
+        playerObj.transform.position = new Vector3(-5.5f, -2.25f, 0);
+        playerObj.transform.localScale = new Vector3(2.0f, 2.0f, 1f);
 
         SpriteRenderer playerSr = playerObj.AddComponent<SpriteRenderer>();
         playerSr.sprite = knightRun1;
@@ -90,9 +90,11 @@ public class AutoSceneBuilder
         playerRb.freezeRotation = true;
         playerRb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
+        // ТОЧНЫЙ ХИТБОКС ИГРОКА: закрывает только тело и ноги, не выступая за меч и плащ
         BoxCollider2D playerCol = playerObj.AddComponent<BoxCollider2D>();
-        playerCol.size = new Vector2(0.9f, 1.25f);
-        playerCol.offset = new Vector2(0f, -0.05f);
+        playerCol.size = new Vector2(0.42f, 1.05f);
+        playerCol.offset = new Vector2(-0.04f, -0.02f);
+        playerCol.edgeRadius = 0.02f;
 
         PlayerController playerCtrl = playerObj.AddComponent<PlayerController>();
         playerCtrl.jumpForce = 14f;
@@ -101,7 +103,7 @@ public class AutoSceneBuilder
         playerCtrl.jumpSprite = knightJump;
         playerCtrl.animationSpeed = 0.11f;
 
-        // 7. Создаем префабы препятствий в папке Assets/Prefabs
+        // 7. Создаем префабы препятствий в папке Assets/Prefabs с ЧЕСТНЫМИ ХИТБОКСАМИ
         string prefabsPath = "Assets/Prefabs";
         if (!Directory.Exists(prefabsPath))
         {
@@ -111,53 +113,59 @@ public class AutoSceneBuilder
 
         GameObject[] createdPrefabs = new GameObject[4];
 
-        // 7.1. CursedSpikes Prefab
+        // 7.1. CursedSpikes Prefab (Гильотинные шипы)
         GameObject spikesObj = new GameObject("CursedSpikes");
         spikesObj.transform.localScale = new Vector3(2.0f, 2.0f, 1f);
         SpriteRenderer spikesSr = spikesObj.AddComponent<SpriteRenderer>();
         spikesSr.sprite = spikesSprite;
         spikesSr.sortingOrder = 5;
+        // Хитбокс только на тело шипов, воздух по краям не убивает
         BoxCollider2D spikesCol = spikesObj.AddComponent<BoxCollider2D>();
-        spikesCol.size = new Vector2(0.9f, 0.9f);
+        spikesCol.size = new Vector2(0.45f, 0.65f);
+        spikesCol.offset = new Vector2(0f, -0.15f);
         Obstacle spikesObs = spikesObj.AddComponent<Obstacle>();
         spikesObs.speed = 7f;
         createdPrefabs[0] = PrefabUtility.SaveAsPrefabAsset(spikesObj, prefabsPath + "/CursedSpikes.prefab");
         Object.DestroyImmediate(spikesObj);
 
-        // 7.2. GothicTombstone Prefab
+        // 7.2. GothicTombstone Prefab (Надгробие безумия)
         GameObject tombObj = new GameObject("GothicTombstone");
         tombObj.transform.localScale = new Vector3(2.0f, 2.0f, 1f);
         SpriteRenderer tombSr = tombObj.AddComponent<SpriteRenderer>();
         tombSr.sprite = tombstoneSprite;
         tombSr.sortingOrder = 5;
         BoxCollider2D tombCol = tombObj.AddComponent<BoxCollider2D>();
-        tombCol.size = new Vector2(0.9f, 0.9f);
+        tombCol.size = new Vector2(0.45f, 0.70f);
+        tombCol.offset = new Vector2(0f, -0.10f);
         Obstacle tombObs = tombObj.AddComponent<Obstacle>();
         tombObs.speed = 7f;
         createdPrefabs[1] = PrefabUtility.SaveAsPrefabAsset(tombObj, prefabsPath + "/GothicTombstone.prefab");
         Object.DestroyImmediate(tombObj);
 
-        // 7.3. ShadowGargoyle Prefab (Летающий)
+        // 7.3. ShadowGargoyle Prefab (Чумной ворон)
         GameObject gargObj = new GameObject("ShadowGargoyle");
         gargObj.transform.localScale = new Vector3(2.0f, 2.0f, 1f);
         SpriteRenderer gargSr = gargObj.AddComponent<SpriteRenderer>();
         gargSr.sprite = gargoyleSprite;
         gargSr.sortingOrder = 5;
+        // Хитбокс только на туловище птицы, кончики перьев не цепляют
         BoxCollider2D gargCol = gargObj.AddComponent<BoxCollider2D>();
-        gargCol.size = new Vector2(1.1f, 0.9f);
+        gargCol.size = new Vector2(0.50f, 0.40f);
+        gargCol.offset = new Vector2(-0.05f, 0f);
         Obstacle gargObs = gargObj.AddComponent<Obstacle>();
         gargObs.speed = 7.5f;
         createdPrefabs[2] = PrefabUtility.SaveAsPrefabAsset(gargObj, prefabsPath + "/ShadowGargoyle.prefab");
         Object.DestroyImmediate(gargObj);
 
-        // 7.4. BloodBat Prefab (Летающий)
+        // 7.4. BloodBat Prefab (Призрак банши)
         GameObject batObj = new GameObject("BloodBat");
-        batObj.transform.localScale = new Vector3(2.2f, 2.2f, 1f);
+        batObj.transform.localScale = new Vector3(2.0f, 2.0f, 1f);
         SpriteRenderer batSr = batObj.AddComponent<SpriteRenderer>();
         batSr.sprite = batSprite;
         batSr.sortingOrder = 5;
         BoxCollider2D batCol = batObj.AddComponent<BoxCollider2D>();
-        batCol.size = new Vector2(1.0f, 0.7f);
+        batCol.size = new Vector2(0.45f, 0.40f);
+        batCol.offset = new Vector2(0f, 0f);
         Obstacle batObs = batObj.AddComponent<Obstacle>();
         batObs.speed = 8.0f;
         createdPrefabs[3] = PrefabUtility.SaveAsPrefabAsset(batObj, prefabsPath + "/BloodBat.prefab");
@@ -169,9 +177,9 @@ public class AutoSceneBuilder
         ObstacleSpawner spawner = spawnerObj.AddComponent<ObstacleSpawner>();
         spawner.obstaclePrefabs = createdPrefabs;
         spawner.spawnX = 12f;
-        spawner.groundSpawnY = -2.6f;
-        spawner.minFlyingY = -1.6f;
-        spawner.maxFlyingY = -0.6f;
+        spawner.groundSpawnY = -2.3f;
+        spawner.minFlyingY = -1.4f;
+        spawner.maxFlyingY = -0.5f;
         spawner.minSpawnTime = 1.6f;
         spawner.maxSpawnTime = 2.8f;
 

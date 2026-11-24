@@ -40,10 +40,14 @@ public class PlayerController : MonoBehaviour
         rb.freezeRotation = true;
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
-        // Находим или автоматически добавляем коллайдер
-        if (GetComponent<Collider2D>() == null)
+        // Находим или автоматически добавляем точный честный коллайдер
+        BoxCollider2D col = GetComponent<BoxCollider2D>();
+        if (col == null && GetComponent<Collider2D>() == null)
         {
-            gameObject.AddComponent<BoxCollider2D>();
+            col = gameObject.AddComponent<BoxCollider2D>();
+            col.size = new Vector2(0.42f, 1.05f);
+            col.offset = new Vector2(-0.04f, -0.02f);
+            col.edgeRadius = 0.02f;
         }
 
         spriteRenderer = GetComponent<SpriteRenderer>();
