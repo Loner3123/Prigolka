@@ -85,11 +85,7 @@ public class AutoSceneBuilder
         playerSr.sprite = knightRun1;
         playerSr.sortingOrder = 10;
 
-        Rigidbody2D playerRb = playerObj.AddComponent<Rigidbody2D>();
-        playerRb.gravityScale = 3.2f;
-        playerRb.freezeRotation = true;
-        playerRb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-
+        // ПРЫЖОК БЕЗ RIGIDBODY: Rigidbody2D не добавляется!
         // ТОЧНЫЙ ХИТБОКС ИГРОКА: закрывает только тело и ноги, не выступая за меч и плащ
         BoxCollider2D playerCol = playerObj.AddComponent<BoxCollider2D>();
         playerCol.size = new Vector2(0.42f, 1.05f);
@@ -97,7 +93,11 @@ public class AutoSceneBuilder
         playerCol.edgeRadius = 0.02f;
 
         PlayerController playerCtrl = playerObj.AddComponent<PlayerController>();
-        playerCtrl.jumpForce = 14f;
+        playerCtrl.jumpVelocity = 14f;
+        playerCtrl.gravity = 32f;
+        playerCtrl.groundY = -2.25f;
+        playerCtrl.hitboxSize = new Vector2(0.42f, 1.05f);
+        playerCtrl.hitboxOffset = new Vector2(-0.04f, -0.02f);
         playerCtrl.runSprite1 = knightRun1;
         playerCtrl.runSprite2 = knightRun2;
         playerCtrl.jumpSprite = knightJump;

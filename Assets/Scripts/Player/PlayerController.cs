@@ -1,75 +1,116 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+/// <summary>
+/// Управление игроком (Black Souls Hunter) БЕЗ использования Rigidbody.
+/// Реализует равноускоренное движение (прыжок и гравитацию) вручную через метод Update.
+/// </summary>
 public class PlayerController : MonoBehaviour
 {
-    [Header("Настройки прыжка")]
-    // Сила прыжка
-    public float jumpForce = 12f;
+    [Header("Прыжок без использования Rigidbody")]
+    [Tooltip("Начальная вертикальная скорость импульса при прыжке вверх (м/с)")]
+    public float jumpVelocity = 14f;
 
-    // Компонент 2D физики
-    private Rigidbody2D rb;
+    [Tooltip("Ускорение свободного падения, тянущее персонажа вниз (м/с^2)")]
+    public float gravity = 32f;
 
-    // Стоит ли игрок на земле (чтобы не прыгать бесконечно в воздухе)
-    private bool isGrounded = false;
+    [Tooltip("Координата Y уровня земли, на которой стоит персонаж")]
+    public float groundY = -2.25f;
 
-    [Header("Анимация бега (Dark Fantasy)")]
-    // Спрайты для анимации бега и прыжка
+    // Текущая вертикальная скорость персонажа
+    private float verticalSpeed = 0f;
+
+    // Находится ли персонаж на земле
+    private bool isGrounded = true;
+
+    [Header("Анимация бега (Black Souls Hunter)")]
     public Sprite runSprite1;
     public Sprite runSprite2;
     public Sprite jumpSprite;
 
     private SpriteRenderer spriteRenderer;
     private float animationTimer;
-    public float animationSpeed = 0.12f; // Скорость переключения кадров
+    public float animationSpeed = 0.11f;
     private bool isFirstFrame = true;
 
-    void Awake()
+    [Header("Честный хитбокс столкновения (без Rigidbody)")]
+    // Хитбокс охватывает только тело, исключая меч и развевающийся плащ
+    public Vector2 hitboxSize = new Vector2(0.42f, 1.05f);
+    public Vector2 hitboxOffset = new Vector2(-0.04f, -0.02f);
+
+    void Start()
     {
-        // Назначаем стандартный тег игрока
-        gameObject.tag = "Player";
-
-        // Находим или автоматически добавляем физику Rigidbody2D
-        rb = GetComponent<Rigidbody2D>();
-        if (rb == null)
-        {
-            rb = gameObject.AddComponent<Rigidbody2D>();
-        }
-
-        // Замораживаем вращение, чтобы рыцарь не падал на спину при приземлении
-        rb.freezeRotation = true;
-        rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-
-        // Находим или автоматически добавляем точный честный коллайдер
-        BoxCollider2D col = GetComponent<BoxCollider2D>();
-        if (col == null && GetComponent<Collider2D>() == null)
-        {
-            col = gameObject.AddComponent<BoxCollider2D>();
-            col.size = new Vector2(0.42f, 1.05f);
-            col.offset = new Vector2(-0.04f, -0.02f);
-            col.edgeRadius = 0.02f;
-        }
-
         spriteRenderer = GetComponent<SpriteRenderer>();
+
+        // Проверяем: по заданию Rigidbody использоваться НЕ ДОЛЖЕН.
+        // Если он случайно остался на объекте — удаляем его.
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            Destroy(rb);
+        }
+
+        // Фиксируем персонажа точно на уровне земли
+        transform.position = new Vector3(transform.position.x, groundY, transform.position.z);
     }
 
+    /// <summary>
+    /// Метод Update() вызывается движком Unity автоматически каждый кадр.
+    /// Частота вызова зависит от FPS (например, 60 кадров/сек = 60 вызовов в секунду).
+    /// Используется для считывания ввода, расчетного перемещения и обновления таймеров.
+    /// Time.deltaTime — время в секундах, прошедшее с момента предыдущего кадра.
+    /// </summary>
     void Update()
     {
-        // --- 1. КНОПКА ПРЫЖКА ---
-        // Прыгает по кнопке Пробел, стрелке вверх, W или клику мышки / тапу
+        // -------------------------------------------------------------
+        // 1. СЧИТЫВАНИЕ КНОПКИ ПРЫЖКА
+        // -------------------------------------------------------------
         bool jumpPressed = Input.GetKeyDown(KeyCode.Space) 
                         || Input.GetKeyDown(KeyCode.UpArrow) 
                         || Input.GetKeyDown(KeyCode.W) 
                         || Input.GetMouseButtonDown(0);
 
+        // Если нажали прыжок и персонаж на земле — даем импульс скорости вверх
         if (jumpPressed && isGrounded)
         {
-            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+            verticalSpeed = jumpVelocity;
             isGrounded = false;
         }
 
-        // --- 2. АНИМАЦИЯ БЕГА (САМ БЕЖИТ) ---
+        // -------------------------------------------------------------
+        // 2. РАСЧЕТ ПРЫЖКА И ГРАВИТАЦИИ БЕЗ RIGIDBODY
+        // Формулы классической кинематики:
+        // v = v0 - g * dt  (скорость уменьшается под действием гравитации)
+        // y = y0 + v * dt  (координата меняется в соответствии со скоростью)
+        // -------------------------------------------------------------
+        if (!isGrounded)
+        {
+            // Уменьшаем вертикальную скорость под действием гравитации
+            verticalSpeed -= gravity * Time.deltaTime;
+
+            // Перемещаем персонажа по оси Y
+            transform.position += Vector3.up * (verticalSpeed * Time.deltaTime);
+
+            // Проверяем приземление: если опустились ниже уровня земли
+            if (transform.position.y <= groundY)
+            {
+                // Возвращаем строго на уровень земли и сбрасываем скорость
+                transform.position = new Vector3(transform.position.x, groundY, transform.position.z);
+                verticalSpeed = 0f;
+                isGrounded = true;
+            }
+        }
+
+        // -------------------------------------------------------------
+        // 3. АНИМАЦИЯ БЕГА И ПРЫЖКА
+        // -------------------------------------------------------------
         UpdateAnimation();
+
+        // -------------------------------------------------------------
+        // 4. ПРОВЕРКА СТОЛКНОВЕНИЯ С ПРЕПЯТСТВИЯМИ (ХИТБОКС)
+        // Проверяем пересечение хитбокса прямо в Update без зависимости от Rigidbody
+        // -------------------------------------------------------------
+        CheckCollisions();
     }
 
     void UpdateAnimation()
@@ -78,42 +119,36 @@ public class PlayerController : MonoBehaviour
 
         if (!isGrounded)
         {
-            // В воздухе показываем спрайт прыжка
+            // В воздухе показываем позу прыжка с мечом
             if (jumpSprite != null) spriteRenderer.sprite = jumpSprite;
         }
         else
         {
-            // На земле циклично переключаем два кадра бега
+            // На земле циклично переключаем кадры бега
             animationTimer += Time.deltaTime;
             if (animationTimer >= animationSpeed)
             {
                 animationTimer = 0f;
                 isFirstFrame = !isFirstFrame;
-
-                if (isFirstFrame && runSprite1 != null)
-                {
-                    spriteRenderer.sprite = runSprite1;
-                }
-                else if (!isFirstFrame && runSprite2 != null)
-                {
-                    spriteRenderer.sprite = runSprite2;
-                }
+                spriteRenderer.sprite = isFirstFrame ? runSprite1 : runSprite2;
             }
         }
     }
 
-    // --- 3. СТОЛКНОВЕНИЕ С ПРЕПЯТСТВИЕМ -> РЕСЕТ ИГРЫ ---
-    void OnCollisionEnter2D(Collision2D collision)
+    // Проверка столкновений через Physics2D.OverlapBox (работает без Rigidbody)
+    void CheckCollisions()
     {
-        // Проверяем, врезался ли игрок в препятствие
-        if (IsObstacle(collision.gameObject))
-        {
-            ResetGame();
-            return;
-        }
+        Vector2 center = (Vector2)transform.position + hitboxOffset;
+        Collider2D[] hits = Physics2D.OverlapBoxAll(center, hitboxSize, 0f);
 
-        // Если коснулись земли (любой другой твердой поверхности под ногами)
-        isGrounded = true;
+        foreach (var hit in hits)
+        {
+            if (hit.gameObject != gameObject && IsObstacle(hit.gameObject))
+            {
+                ResetGame();
+                break;
+            }
+        }
     }
 
     void OnTriggerEnter2D(Collider2D other)
@@ -124,25 +159,38 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // Проверка, является ли объект препятствием
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (IsObstacle(collision.gameObject))
+        {
+            ResetGame();
+        }
+    }
+
     private bool IsObstacle(GameObject obj)
     {
         if (obj == null) return false;
-
         string name = obj.name.ToLower();
         return obj.GetComponent<Obstacle>() != null 
             || obj.CompareTag("Obstacle") 
             || name.Contains("obstacle")
             || name.Contains("spike")
-            || name.Contains("cactus")
             || name.Contains("tombstone")
             || name.Contains("gargoyle")
-            || name.Contains("bat");
+            || name.Contains("bat")
+            || name.Contains("crow");
     }
 
-    // ПЕРЕЗАПУСК ИГРЫ
     public void ResetGame()
     {
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    // Отображение точного хитбокса в редакторе Unity (зеленая рамка)
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.green;
+        Vector2 center = (Vector2)transform.position + hitboxOffset;
+        Gizmos.DrawWireCube(center, hitboxSize);
     }
 }
