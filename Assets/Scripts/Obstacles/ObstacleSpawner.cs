@@ -15,8 +15,9 @@ public class ObstacleSpawner : MonoBehaviour
 
     [Header("Позиция появления")]
     public float spawnX = 12f;
-    public float groundSpawnY = -2f;
-    public float flyingSpawnY = 0.5f;
+    public float groundSpawnY = -2.6f;
+    public float minFlyingY = -1.6f;
+    public float maxFlyingY = -0.6f;
 
     private float timer;
     private float nextSpawnTime;
@@ -47,7 +48,11 @@ public class ObstacleSpawner : MonoBehaviour
             GameObject prefab = obstaclePrefabs[index];
             if (prefab != null)
             {
-                float y = (Random.value > 0.4f) ? groundSpawnY : flyingSpawnY;
+                bool isFlying = prefab.name.ToLower().Contains("fly") 
+                             || prefab.name.ToLower().Contains("bat") 
+                             || prefab.name.ToLower().Contains("gargoyle");
+
+                float y = isFlying ? Random.Range(minFlyingY, maxFlyingY) : groundSpawnY;
                 Instantiate(prefab, new Vector3(spawnX, y, 0f), Quaternion.identity);
                 return;
             }
@@ -65,7 +70,7 @@ public class ObstacleSpawner : MonoBehaviour
                              || sprite.name.ToLower().Contains("bat") 
                              || sprite.name.ToLower().Contains("gargoyle");
 
-                float y = isFlying ? flyingSpawnY : groundSpawnY;
+                float y = isFlying ? Random.Range(minFlyingY, maxFlyingY) : groundSpawnY;
                 newObs.transform.position = new Vector3(spawnX, y, 0f);
 
                 SpriteRenderer sr = newObs.AddComponent<SpriteRenderer>();

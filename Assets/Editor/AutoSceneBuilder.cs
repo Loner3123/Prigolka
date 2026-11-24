@@ -170,7 +170,8 @@ public class AutoSceneBuilder
         spawner.obstaclePrefabs = createdPrefabs;
         spawner.spawnX = 12f;
         spawner.groundSpawnY = -2.6f;
-        spawner.flyingSpawnY = -0.5f;
+        spawner.minFlyingY = -1.6f;
+        spawner.maxFlyingY = -0.6f;
         spawner.minSpawnTime = 1.6f;
         spawner.maxSpawnTime = 2.8f;
 
@@ -187,7 +188,10 @@ public class AutoSceneBuilder
             new EditorBuildSettingsScene("Assets/Scenes/SampleScene.unity", true)
         };
         
-        EditorUtility.DisplayDialog("Готово!", "Сцена игры успешно собрана!\nНажмите кнопку Play ▶️ вверху экрана, чтобы начать игру.", "Понял");
+        if (!Application.isBatchMode)
+        {
+            EditorUtility.DisplayDialog("Готово!", "Сцена игры успешно собрана!\nНажмите кнопку Play ▶️ вверху экрана, чтобы начать игру.", "Понял");
+        }
     }
 
     [MenuItem("Tools/📦 Собрать готовую игру в .EXE")]
@@ -215,7 +219,10 @@ public class AutoSceneBuilder
 
         if (report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded)
         {
-            EditorUtility.DisplayDialog("Сборка готова!", "Игра успешно собрана в EXE!\nФайл находится в Z:/unity/Build/DarkFantasyDino.exe", "Круто");
+            if (!Application.isBatchMode)
+            {
+                EditorUtility.DisplayDialog("Сборка готова!", "Игра успешно собрана в EXE!\nФайл находится в Z:/unity/Build/DarkFantasyDino.exe", "Круто");
+            }
         }
     }
 }
